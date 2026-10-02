@@ -47,3 +47,7 @@ yarn-error.log
 /opencode.jsonc
 
 .castor.stub.php
+
+# Données nominatives (propriétaires) — pas de versionning tant que le
+# traitement RGPD n'est pas tranché.
+/data/ban/
