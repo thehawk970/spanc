@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CompteurVersion extends ModeleImmuable
 {
     protected $fillable = [
-        'numero_compteur', 'adresse_brute', 'abonne_nom_brut', 'proprietes_brutes', 'import_batch_id',
+        'numero_compteur', 'adresse_brute', 'abonne_nom_brut', 'civilite', 'proprietes_brutes', 'import_batch_id',
     ];
 
     protected function casts(): array

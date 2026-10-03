@@ -11,8 +11,15 @@ class CompteurVersionsTable
     public static function configure(Table $table): Table
     {
         return $table
+            // Un compteur peut avoir ete importe plusieurs fois (correction
+            // de donnees) : la liste ne montre que la derniere version de
+            // chaque compteur, l'historique complet reste en base.
+            ->modifyQueryUsing(fn ($query) => $query->whereIn('id', function ($sub) {
+                $sub->selectRaw('MAX(id)')->from('compteur_versions')->groupBy('numero_compteur');
+            }))
             ->columns([
                 TextColumn::make('numero_compteur')->label('Numéro de compteur')->searchable()->sortable(),
+                TextColumn::make('civilite')->label('Civilité')->placeholder('—'),
                 TextColumn::make('abonne_nom_brut')->label('Abonné (brut)')->placeholder('—'),
                 TextColumn::make('adresse_brute')->label('Adresse (brute)')->placeholder('—')->wrap(),
                 TextColumn::make('code_redevance')

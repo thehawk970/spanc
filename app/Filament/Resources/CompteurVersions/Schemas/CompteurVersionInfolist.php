@@ -16,6 +16,7 @@ class CompteurVersionInfolist
                     ->columns(2)
                     ->components([
                         TextEntry::make('numero_compteur')->label('Numéro de compteur')->copyable(),
+                        TextEntry::make('civilite')->label('Civilité')->placeholder('—'),
                         TextEntry::make('abonne_nom_brut')->label('Abonné (brut)')->placeholder('—'),
                         TextEntry::make('adresse_brute')->label('Adresse (brute)')->placeholder('—')->columnSpanFull(),
                         TextEntry::make('code_redevance')

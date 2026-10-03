@@ -77,11 +77,13 @@ class ImporterCompteursSogedoCommand extends Command
 
             $adresse = trim(($props['Adresse Abonne'] ?? '').' '.($props['Adresse compl Abonne'] ?? ''));
             $commune = trim(($props['Code postal Abonne'] ?? '').' '.($props['Commune Abonne'] ?? ''));
+            [$civilite, $nom] = $this->extraireCivilite(trim($props['Nom Abonne'] ?? ''));
 
             $lignes[] = [
                 'numero_compteur' => $numeroCompteur,
                 'adresse_brute' => trim("{$adresse}, {$commune}", ', '),
-                'abonne_nom_brut' => trim($props['Nom Abonne'] ?? '') ?: null,
+                'abonne_nom_brut' => $nom ?: null,
+                'civilite' => $civilite,
                 'proprietes_brutes' => json_encode($props, JSON_UNESCAPED_UNICODE),
                 'import_batch_id' => $batch->id,
                 'created_at' => $maintenant,
@@ -108,5 +110,35 @@ class ImporterCompteursSogedoCommand extends Command
         $this->info("Import termine : {$total} compteurs importes, {$ignorees} ligne(s) ignoree(s) (batch #{$batch->id}).");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * La SOGEDO colle la civilite au nom, avec plusieurs graphies (parfois
+     * sans espace interne : "M.ETMME", "M.OUMME"). Separee ici plutot que
+     * jetee : "M. ou Mme" signale une indivision potentielle, utile pour le
+     * rapprochement proprietaire a venir.
+     *
+     * @return array{0: ?string, 1: string}
+     */
+    private function extraireCivilite(string $nomBrut): array
+    {
+        $prefixes = [
+            'M.ETMME' => 'M. et Mme',
+            'M.OUMME' => 'M. ou Mme',
+            'MMES' => 'Mmes',
+            'MME' => 'Mme',
+            'M.' => 'M.',
+        ];
+
+        foreach ($prefixes as $motif => $civilite) {
+            $longueur = strlen($motif);
+
+            if (str_starts_with($nomBrut, $motif)
+                && (strlen($nomBrut) === $longueur || $nomBrut[$longueur] === ' ')) {
+                return [$civilite, trim(substr($nomBrut, $longueur))];
+            }
+        }
+
+        return [null, $nomBrut];
     }
 }
