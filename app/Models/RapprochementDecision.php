@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RapprochementDecision extends ModeleImmuable
 {
+    protected $table = 'rapprochements_decisions';
+
     protected $fillable = [
         'rapprochement_propose_id', 'decision', 'motif', 'decide_par_id',
     ];

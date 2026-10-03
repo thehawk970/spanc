@@ -14,7 +14,10 @@ use App\Models\InstallationParcelleCourante;
 use App\Models\InstallationParcelleEvenement;
 use App\Models\InstallationProprietaireCourante;
 use App\Models\InstallationProprietaireEvenement;
+use App\Models\ProprietaireParcelleActuel;
+use App\Models\ProprietaireParcelleRapprochement;
 use App\Observers\BatimentParcelleRapprochementObserver;
+use App\Observers\ProprietaireParcelleRapprochementObserver;
 use App\Observers\InstallationBatimentEvenementObserver;
 use App\Observers\InstallationCompteurEvenementObserver;
 use App\Observers\InstallationEtatObserver;
@@ -41,6 +44,7 @@ class RebuildProjectionsCommand extends Command
         $this->rebuild(InstallationCompteurCourant::class, InstallationCompteurEvenement::class, new InstallationCompteurEvenementObserver);
         $this->rebuild(InstallationProprietaireCourante::class, InstallationProprietaireEvenement::class, new InstallationProprietaireEvenementObserver);
         $this->rebuild(BatimentParcelleActuel::class, BatimentParcelleRapprochement::class, new BatimentParcelleRapprochementObserver);
+        $this->rebuild(ProprietaireParcelleActuel::class, ProprietaireParcelleRapprochement::class, new ProprietaireParcelleRapprochementObserver);
 
         $this->info('Projections régénérées.');
 

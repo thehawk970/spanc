@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RapprochementPropose extends ModeleImmuable
 {
+    protected $table = 'rapprochements_proposes';
+
     protected $fillable = [
         'installation_id', 'type_cible', 'cible_id', 'methode', 'confiance',
     ];

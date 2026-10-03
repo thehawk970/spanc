@@ -48,6 +48,7 @@ yarn-error.log
 
 .castor.stub.php
 
-# Données nominatives (propriétaires) — pas de versionning tant que le
-# traitement RGPD n'est pas tranché.
+# Données nominatives (propriétaires, abonnés SOGEDO) — pas de versionning
+# tant que le traitement RGPD n'est pas tranché.
 /data/ban/
+/data/sogedo/

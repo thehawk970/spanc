@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProprietaireVersion extends ModeleImmuable
 {
@@ -21,5 +22,15 @@ class ProprietaireVersion extends ModeleImmuable
     public function importBatch(): BelongsTo
     {
         return $this->belongsTo(ImportBatch::class);
+    }
+
+    public function installationsCourantes(): HasMany
+    {
+        return $this->hasMany(InstallationProprietaireCourante::class);
+    }
+
+    public function parcellesActuelles(): HasMany
+    {
+        return $this->hasMany(ProprietaireParcelleActuel::class);
     }
 }
