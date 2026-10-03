@@ -2,9 +2,13 @@
 
 namespace App\Filament\Resources\Installations\RelationManagers;
 
+use App\Filament\Resources\CompteurVersions\CompteurVersionResource;
+use App\Models\CompteurVersion;
 use App\Models\InstallationCompteurEvenement;
+use App\Support\DeterminationTypeSogedo;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -52,9 +56,26 @@ class CompteursCourantsRelationManager extends RelationManager
                             'motif' => $data['motif'] ?? null,
                             'auteur_id' => auth()->id(),
                         ]);
+
+                        $resultat = DeterminationTypeSogedo::depuisCompteursLies($this->getOwnerRecord()->id);
+
+                        if ($resultat['resultat'] === 'determine') {
+                            Notification::make()
+                                ->title('Type déduit : '.($resultat['type'] === 'collectif' ? 'Collectif' : 'Non collectif'))
+                                ->body("Via le code redevance du compteur ({$resultat['detail']})")
+                                ->success()
+                                ->send();
+                        }
                     }),
             ])
             ->recordActions([
+                Action::make('voir')
+                    ->label('Voir')
+                    ->url(function ($record) {
+                        $compteur = CompteurVersion::where('numero_compteur', $record->numero_compteur)->latest('id')->first();
+
+                        return $compteur ? CompteurVersionResource::getUrl('view', ['record' => $compteur->id]) : null;
+                    }),
                 Action::make('delier')
                     ->label('Délier')
                     ->icon('heroicon-o-x-mark')

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CompteurVersion extends ModeleImmuable
 {
@@ -21,5 +22,15 @@ class CompteurVersion extends ModeleImmuable
     public function importBatch(): BelongsTo
     {
         return $this->belongsTo(ImportBatch::class);
+    }
+
+    /**
+     * Clé métier (numero_compteur), pas l'id de version : un même compteur
+     * peut avoir plusieurs versions importées, toutes partagent les mêmes
+     * liens installation.
+     */
+    public function installationsCourantes(): HasMany
+    {
+        return $this->hasMany(InstallationCompteurCourant::class, 'numero_compteur', 'numero_compteur');
     }
 }

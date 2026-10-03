@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CompteurVersions;
 
 use App\Filament\Resources\CompteurVersions\Pages\ListCompteurVersions;
 use App\Filament\Resources\CompteurVersions\Pages\ViewCompteurVersion;
+use App\Filament\Resources\CompteurVersions\RelationManagers\InstallationsRelationManager;
 use App\Filament\Resources\CompteurVersions\Schemas\CompteurVersionInfolist;
 use App\Filament\Resources\CompteurVersions\Tables\CompteurVersionsTable;
 use App\Models\CompteurVersion;
@@ -43,6 +44,13 @@ class CompteurVersionResource extends Resource
     public static function table(Table $table): Table
     {
         return CompteurVersionsTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            InstallationsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
