@@ -13,8 +13,12 @@ class CompteurVersionsTable
         return $table
             ->columns([
                 TextColumn::make('numero_compteur')->label('Numéro de compteur')->searchable()->sortable(),
-                TextColumn::make('adresse_brute')->label('Adresse (brute)')->placeholder('—')->wrap(),
                 TextColumn::make('abonne_nom_brut')->label('Abonné (brut)')->placeholder('—'),
+                TextColumn::make('adresse_brute')->label('Adresse (brute)')->placeholder('—')->wrap(),
+                TextColumn::make('code_redevance')
+                    ->label('Code redevance')
+                    ->getStateUsing(fn ($record) => $record->proprietes_brutes['Code Redevance 3'] ?? '—')
+                    ->badge(),
                 TextColumn::make('importBatch.source')->label('Import')->badge()->toggleable(),
                 TextColumn::make('created_at')->label('Importé le')->dateTime('d/m/Y H:i')->sortable(),
             ])

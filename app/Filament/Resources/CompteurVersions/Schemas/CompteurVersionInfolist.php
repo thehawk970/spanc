@@ -18,6 +18,10 @@ class CompteurVersionInfolist
                         TextEntry::make('numero_compteur')->label('Numéro de compteur')->copyable(),
                         TextEntry::make('abonne_nom_brut')->label('Abonné (brut)')->placeholder('—'),
                         TextEntry::make('adresse_brute')->label('Adresse (brute)')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('code_redevance')
+                            ->label('Code redevance')
+                            ->getStateUsing(fn ($record) => $record->proprietes_brutes['Code Redevance 3'] ?? '—')
+                            ->badge(),
                         TextEntry::make('importBatch.source')->label('Import')->badge(),
                         TextEntry::make('created_at')->label('Importé le')->dateTime('d/m/Y H:i'),
                     ]),

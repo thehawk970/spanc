@@ -15,9 +15,9 @@ use Filament\Tables\Table;
 use UnitEnum;
 
 /**
- * Référentiel brut (append-only), vide tant qu'aucun import SOGEDO n'a été
- * fait (aucune commande d'import n'existe encore pour cette source).
- * Lecture seule.
+ * Référentiel brut (append-only), alimenté par `sogedo:importer-compteurs`.
+ * Lecture seule : le rapprochement abonné/installation se fait ailleurs,
+ * plus tard (l'abonné SOGEDO n'est pas forcément le propriétaire actuel).
  */
 class CompteurVersionResource extends Resource
 {
