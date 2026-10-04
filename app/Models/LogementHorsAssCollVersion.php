@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LogementHorsAssCollVersion extends ModeleImmuable
 {
@@ -22,5 +23,11 @@ class LogementHorsAssCollVersion extends ModeleImmuable
     public function importBatch(): BelongsTo
     {
         return $this->belongsTo(ImportBatch::class);
+    }
+
+    /** Installation(s) portant deja cette parcelle (lien exact, pas de FK declaree : parcelle_id est la cle commune). */
+    public function installationsParcelle(): HasMany
+    {
+        return $this->hasMany(InstallationParcelleCourante::class, 'parcelle_id', 'parcelle_id');
     }
 }
