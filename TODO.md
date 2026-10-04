@@ -1,0 +1,6 @@
+- Location déduite est pas bonne (example amouroux)
+- Des parcelles sans propriétaire
+- Liens avec les parcelles pour les diagnostics perigeo
+- Faire une commande pour scrap : assainissement-non-collectif.pro/fiche/
+- Workflow pour éviter les commandes à la chaine
+- Page pour upload des fichiers
