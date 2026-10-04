@@ -4,7 +4,9 @@ namespace App\Filament\Resources\BatimentVersions\Tables;
 
 use App\Models\BatimentVersion;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -18,6 +20,12 @@ class BatimentVersionsTable
                 TextColumn::make('commune_insee')->label('Commune (INSEE)')->searchable()->sortable(),
                 TextColumn::make('type')->label('Type')->placeholder('—')->searchable()->sortable(),
                 TextColumn::make('nom')->label('Nom')->placeholder('—')->searchable()->sortable(),
+                IconColumn::make('installationCourante.installation_id')
+                    ->label('Référencé')
+                    ->boolean()
+                    ->tooltip(fn (BatimentVersion $record) => $record->installationCourante
+                        ? 'Déjà rattaché à une installation'
+                        : 'Pas encore rattaché à une installation'),
                 TextColumn::make('centroide_lon')->label('Lon.')->numeric(6)->sortable(),
                 TextColumn::make('centroide_lat')->label('Lat.')->numeric(6)->sortable(),
                 TextColumn::make('importBatch.source')->label('Import')->badge()->toggleable()->sortable(),
@@ -34,6 +42,10 @@ class BatimentVersionsTable
                 SelectFilter::make('import_batch_id')
                     ->label('Import')
                     ->relationship('importBatch', 'source'),
+                Filter::make('non_reference')
+                    ->label('Non référencé uniquement')
+                    ->toggle()
+                    ->query(fn ($query) => $query->whereDoesntHave('installationCourante')),
             ])
             ->recordActions([
                 ViewAction::make(),

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BatimentVersion extends ModeleImmuable
 {
@@ -24,5 +25,17 @@ class BatimentVersion extends ModeleImmuable
     public function importBatch(): BelongsTo
     {
         return $this->belongsTo(ImportBatch::class);
+    }
+
+    /** Lien courant vers l'installation qui porte ce bâtiment, s'il est référencé. */
+    public function installationCourante(): HasOne
+    {
+        return $this->hasOne(InstallationBatimentCourant::class);
+    }
+
+    /** Parcelle déjà rapprochée de ce bâtiment (projection géométrique), s'il y en a une. */
+    public function parcelleActuelle(): HasOne
+    {
+        return $this->hasOne(BatimentParcelleActuel::class);
     }
 }

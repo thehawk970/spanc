@@ -6,15 +6,11 @@ use App\Models\BatimentParcelleRapprochement;
 use App\Models\BatimentVersion;
 use App\Models\ImportBatch;
 use App\Models\ParcelleVersion;
-use App\Support\Geometrie;
-use Generator;
+use App\Support\IndexSpatialParcelles;
 use Illuminate\Console\Command;
 
 class RapprocherBatimentsParcellesCommand extends Command
 {
-    /** ~100m : assez fin pour que chaque cellule ne contienne qu'une poignee de parcelles candidates. */
-    private const TAILLE_CELLULE = 0.001;
-
     protected $signature = 'cadastre:rapprocher-batiments
         {--batch-parcelles= : import_batch_id des parcelles a utiliser (par defaut : le plus recent)}
         {--batch-batiments= : import_batch_id des batiments a utiliser (par defaut : le plus recent)}';
@@ -46,25 +42,7 @@ class RapprocherBatimentsParcellesCommand extends Command
 
         $this->info("Construction de l'index spatial des parcelles...");
         $parcelles = ParcelleVersion::where('import_batch_id', $batchParcellesId)->get(['id', 'geometry']);
-
-        $geometries = [];
-        $grille = [];
-
-        $bar = $this->output->createProgressBar($parcelles->count());
-        foreach ($parcelles as $parcelle) {
-            $geom = $parcelle->geometry; // deja decode par le cast 'array' du modele
-            $geometries[$parcelle->id] = $geom;
-
-            [$minLon, $maxLon, $minLat, $maxLat] = Geometrie::bbox($geom);
-
-            foreach ($this->cellulesPourBbox($minLon, $maxLon, $minLat, $maxLat) as $cellule) {
-                $grille[$cellule][] = $parcelle->id;
-            }
-
-            $bar->advance();
-        }
-        $bar->finish();
-        $this->newLine();
+        $index = new IndexSpatialParcelles($parcelles);
 
         $this->info('Rapprochement des batiments...');
         $batiments = BatimentVersion::where('import_batch_id', $batchBatimentsId)
@@ -76,15 +54,7 @@ class RapprocherBatimentsParcellesCommand extends Command
 
         $bar = $this->output->createProgressBar($batiments->count());
         foreach ($batiments as $batiment) {
-            $candidats = array_unique($this->candidatsAutourDe($grille, $batiment->centroide_lon, $batiment->centroide_lat));
-
-            $parcelleTrouvee = null;
-            foreach ($candidats as $parcelleId) {
-                if (Geometrie::pointDansGeometrie($batiment->centroide_lon, $batiment->centroide_lat, $geometries[$parcelleId])) {
-                    $parcelleTrouvee = $parcelleId;
-                    break;
-                }
-            }
+            $parcelleTrouvee = $index->trouverParcelleContenant($batiment->centroide_lon, $batiment->centroide_lat);
 
             if ($parcelleTrouvee !== null) {
                 $trouves++;
@@ -120,37 +90,5 @@ class RapprocherBatimentsParcellesCommand extends Command
         $this->info("Termine : {$trouves} batiments rapproches, {$nonTrouves} sans parcelle correspondante.");
 
         return self::SUCCESS;
-    }
-
-    private function cellulesPourBbox(float $minLon, float $maxLon, float $minLat, float $maxLat): Generator
-    {
-        $iMin = (int) floor($minLon / self::TAILLE_CELLULE);
-        $iMax = (int) floor($maxLon / self::TAILLE_CELLULE);
-        $jMin = (int) floor($minLat / self::TAILLE_CELLULE);
-        $jMax = (int) floor($maxLat / self::TAILLE_CELLULE);
-
-        for ($i = $iMin; $i <= $iMax; $i++) {
-            for ($j = $jMin; $j <= $jMax; $j++) {
-                yield "{$i}_{$j}";
-            }
-        }
-    }
-
-    private function candidatsAutourDe(array $grille, float $lon, float $lat): array
-    {
-        $i = (int) floor($lon / self::TAILLE_CELLULE);
-        $j = (int) floor($lat / self::TAILLE_CELLULE);
-
-        $candidats = [];
-        for ($di = -1; $di <= 1; $di++) {
-            for ($dj = -1; $dj <= 1; $dj++) {
-                $cellule = ($i + $di).'_'.($j + $dj);
-                if (isset($grille[$cellule])) {
-                    $candidats = array_merge($candidats, $grille[$cellule]);
-                }
-            }
-        }
-
-        return $candidats;
     }
 }
