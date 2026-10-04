@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ProprietaireVersion extends ModeleImmuable
 {
     protected $fillable = [
-        'nom', 'prenom', 'contact', 'proprietes_brutes', 'import_batch_id',
+        'nom', 'prenom', 'civilite', 'contact', 'proprietes_brutes', 'import_batch_id',
     ];
 
     protected function casts(): array

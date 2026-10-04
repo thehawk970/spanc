@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\CompteurVersion;
 use App\Models\ImportBatch;
+use App\Support\Civilite;
 use Illuminate\Console\Command;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -77,7 +78,7 @@ class ImporterCompteursSogedoCommand extends Command
 
             $adresse = trim(($props['Adresse Abonne'] ?? '').' '.($props['Adresse compl Abonne'] ?? ''));
             $commune = trim(($props['Code postal Abonne'] ?? '').' '.($props['Commune Abonne'] ?? ''));
-            [$civilite, $nom] = $this->extraireCivilite(trim($props['Nom Abonne'] ?? ''));
+            [$civilite, $nom] = Civilite::extraire(trim($props['Nom Abonne'] ?? ''));
 
             $lignes[] = [
                 'numero_compteur' => $numeroCompteur,
@@ -110,35 +111,5 @@ class ImporterCompteursSogedoCommand extends Command
         $this->info("Import termine : {$total} compteurs importes, {$ignorees} ligne(s) ignoree(s) (batch #{$batch->id}).");
 
         return self::SUCCESS;
-    }
-
-    /**
-     * La SOGEDO colle la civilite au nom, avec plusieurs graphies (parfois
-     * sans espace interne : "M.ETMME", "M.OUMME"). Separee ici plutot que
-     * jetee : "M. ou Mme" signale une indivision potentielle, utile pour le
-     * rapprochement proprietaire a venir.
-     *
-     * @return array{0: ?string, 1: string}
-     */
-    private function extraireCivilite(string $nomBrut): array
-    {
-        $prefixes = [
-            'M.ETMME' => 'M. et Mme',
-            'M.OUMME' => 'M. ou Mme',
-            'MMES' => 'Mmes',
-            'MME' => 'Mme',
-            'M.' => 'M.',
-        ];
-
-        foreach ($prefixes as $motif => $civilite) {
-            $longueur = strlen($motif);
-
-            if (str_starts_with($nomBrut, $motif)
-                && (strlen($nomBrut) === $longueur || $nomBrut[$longueur] === ' ')) {
-                return [$civilite, trim(substr($nomBrut, $longueur))];
-            }
-        }
-
-        return [null, $nomBrut];
     }
 }

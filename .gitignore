@@ -52,3 +52,5 @@ yarn-error.log
 # tant que le traitement RGPD n'est pas tranché.
 /data/ban/
 /data/sogedo/
+/data/diagnostics/
+/data/cadastre/*.csv
