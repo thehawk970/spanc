@@ -34,6 +34,14 @@ class InstallationInfolist
                         TextEntry::make('etatCourant.statut')
                             ->label('Statut')
                             ->badge(),
+                        TextEntry::make('code_insee')
+                            ->label('Code INSEE')
+                            ->getStateUsing(fn (Installation $record) => $record->communeActuelle()['code_insee'] ?? null)
+                            ->placeholder('—'),
+                        TextEntry::make('commune')
+                            ->label('Commune')
+                            ->getStateUsing(fn (Installation $record) => $record->communeActuelle()['nom'] ?? null)
+                            ->placeholder('—'),
                         TextEntry::make('id')
                             ->label('UUID (référence technique)')
                             ->copyable()

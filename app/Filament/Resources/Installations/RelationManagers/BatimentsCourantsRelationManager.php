@@ -33,10 +33,10 @@ class BatimentsCourantsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('batiment_version_id')
             ->columns([
-                TextColumn::make('batimentVersion.id')->label('ID technique'),
-                TextColumn::make('batimentVersion.commune_insee')->label('Commune (INSEE)'),
-                TextColumn::make('confiance')->label('Confiance')->placeholder('—'),
-                TextColumn::make('maj_le')->label('Depuis le')->dateTime('d/m/Y H:i'),
+                TextColumn::make('batimentVersion.id')->label('ID technique')->searchable()->sortable(),
+                TextColumn::make('batimentVersion.commune_insee')->label('Commune (INSEE)')->searchable()->sortable(),
+                TextColumn::make('confiance')->label('Confiance')->placeholder('—')->sortable(),
+                TextColumn::make('maj_le')->label('Depuis le')->dateTime('d/m/Y H:i')->sortable(),
             ])
             ->headerActions([
                 Action::make('lier')

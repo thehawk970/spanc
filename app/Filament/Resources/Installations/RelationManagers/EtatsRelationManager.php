@@ -10,6 +10,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 /**
@@ -34,15 +35,31 @@ class EtatsRelationManager extends RelationManager
             ->recordTitleAttribute('type')
             ->defaultSort('created_at', 'desc')
             ->columns([
-                TextColumn::make('type')->badge(),
-                TextColumn::make('statut')->badge(),
-                TextColumn::make('motif')->limit(40)->placeholder('—'),
-                TextColumn::make('auteur.name')->label('Auteur')->placeholder('—'),
-                TextColumn::make('created_at')->label('Date')->dateTime('d/m/Y H:i'),
+                TextColumn::make('type')->badge()->sortable(),
+                TextColumn::make('statut')->badge()->sortable(),
+                TextColumn::make('motif')->limit(40)->placeholder('—')->searchable(),
+                TextColumn::make('auteur.name')->label('Auteur')->placeholder('—')->searchable()->sortable(),
+                TextColumn::make('created_at')->label('Date')->dateTime('d/m/Y H:i')->sortable(),
+            ])
+            ->filters([
+                SelectFilter::make('type')
+                    ->options([
+                        'non_determine' => 'Non déterminé',
+                        'collectif' => 'Collectif',
+                        'non_collectif' => 'Non collectif',
+                    ]),
+                SelectFilter::make('statut')
+                    ->options([
+                        'a_statuer' => 'À statuer',
+                        'a_controler' => 'À contrôler',
+                        'actif' => 'Actif',
+                        'inactif' => 'Inactif',
+                        'abandonne' => 'Abandonné',
+                    ]),
             ])
             ->headerActions([
                 Action::make('nouvelEtat')
-                    ->label("Nouvel état")
+                    ->label('Nouvel état')
                     ->icon('heroicon-o-plus')
                     ->schema([
                         Select::make('type')

@@ -10,6 +10,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 /**
@@ -38,11 +39,29 @@ class RapportsRelationManager extends RelationManager
             ->recordTitleAttribute('type_controle')
             ->defaultSort('date_controle', 'desc')
             ->columns([
-                TextColumn::make('type_controle')->label('Type')->badge(),
-                TextColumn::make('date_controle')->label('Date')->date('d/m/Y'),
-                TextColumn::make('conclusion')->label('Conclusion')->badge()->placeholder('—'),
-                TextColumn::make('commentaire')->label('Commentaire')->limit(50)->placeholder('—'),
-                TextColumn::make('auteur.name')->label('Auteur')->placeholder('—'),
+                TextColumn::make('type_controle')->label('Type')->badge()->sortable(),
+                TextColumn::make('date_controle')->label('Date')->date('d/m/Y')->sortable(),
+                TextColumn::make('conclusion')->label('Conclusion')->badge()->placeholder('—')->sortable(),
+                TextColumn::make('commentaire')->label('Commentaire')->limit(50)->placeholder('—')->searchable(),
+                TextColumn::make('auteur.name')->label('Auteur')->placeholder('—')->searchable()->sortable(),
+            ])
+            ->filters([
+                SelectFilter::make('type_controle')
+                    ->label('Type')
+                    ->options([
+                        'diagnostic_initial' => 'Diagnostic initial',
+                        'controle_periodique' => 'Contrôle périodique',
+                        'controle_conception' => 'Contrôle de conception',
+                        'controle_realisation' => 'Contrôle de réalisation',
+                        'controle_vente' => 'Contrôle (vente immobilière)',
+                    ]),
+                SelectFilter::make('conclusion')
+                    ->label('Conclusion')
+                    ->options([
+                        'conforme' => 'Conforme',
+                        'non_conforme' => 'Non conforme',
+                        'avec_reserves' => 'Avec réserves',
+                    ]),
             ])
             ->headerActions([
                 Action::make('ajouterRapport')

@@ -36,10 +36,10 @@ class ProprietairesCourantsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('id')
             ->columns([
-                TextColumn::make('proprietaireVersion.nom')->label('Nom'),
-                TextColumn::make('proprietaireVersion.prenom')->label('Prénom')->placeholder('—'),
-                TextColumn::make('proprietaireVersion.contact')->label('Contact')->placeholder('—'),
-                TextColumn::make('maj_le')->label('Depuis le')->dateTime('d/m/Y H:i'),
+                TextColumn::make('proprietaireVersion.nom')->label('Nom')->searchable()->sortable(),
+                TextColumn::make('proprietaireVersion.prenom')->label('Prénom')->placeholder('—')->searchable()->sortable(),
+                TextColumn::make('proprietaireVersion.contact')->label('Contact')->placeholder('—')->searchable()->sortable(),
+                TextColumn::make('maj_le')->label('Depuis le')->dateTime('d/m/Y H:i')->sortable(),
             ])
             ->headerActions([
                 Action::make('lier')

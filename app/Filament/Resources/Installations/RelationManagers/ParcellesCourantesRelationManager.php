@@ -33,7 +33,7 @@ class ParcellesCourantesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('parcelle_id')
             ->columns([
-                TextColumn::make('parcelle_id')->label('Parcelle'),
+                TextColumn::make('parcelle_id')->label('Parcelle')->searchable()->sortable(),
                 TextColumn::make('commune')
                     ->label('Commune / section')
                     ->getStateUsing(function ($record) {
@@ -62,8 +62,8 @@ class ParcellesCourantesRelationManager extends RelationManager
                             ->implode(' | ');
                     })
                     ->wrap(),
-                TextColumn::make('confiance')->label('Confiance')->placeholder('—'),
-                TextColumn::make('maj_le')->label('Depuis le')->dateTime('d/m/Y H:i'),
+                TextColumn::make('confiance')->label('Confiance')->placeholder('—')->sortable(),
+                TextColumn::make('maj_le')->label('Depuis le')->dateTime('d/m/Y H:i')->sortable(),
             ])
             ->headerActions([
                 Action::make('lier')

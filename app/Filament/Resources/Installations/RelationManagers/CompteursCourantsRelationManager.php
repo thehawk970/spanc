@@ -30,9 +30,9 @@ class CompteursCourantsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('numero_compteur')
             ->columns([
-                TextColumn::make('numero_compteur')->label('Numéro de compteur'),
-                TextColumn::make('confiance')->label('Confiance')->placeholder('—'),
-                TextColumn::make('maj_le')->label('Depuis le')->dateTime('d/m/Y H:i'),
+                TextColumn::make('numero_compteur')->label('Numéro de compteur')->searchable()->sortable(),
+                TextColumn::make('confiance')->label('Confiance')->placeholder('—')->sortable(),
+                TextColumn::make('maj_le')->label('Depuis le')->dateTime('d/m/Y H:i')->sortable(),
             ])
             ->headerActions([
                 Action::make('lier')

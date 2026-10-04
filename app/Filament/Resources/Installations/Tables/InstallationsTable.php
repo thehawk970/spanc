@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Installations\Tables;
 
+use App\Models\AdresseVersion;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -13,7 +14,7 @@ class InstallationsTable
     {
         return $table
             ->modifyQueryUsing(fn ($query) => $query
-                ->with(['etatCourant', 'proprietairesCourants.proprietaireVersion'])
+                ->with(['etatCourant', 'parcellesCourantes', 'proprietairesCourants.proprietaireVersion'])
                 ->withCount(['parcellesCourantes', 'batimentsCourants', 'compteursCourants', 'proprietairesCourants']))
             ->columns([
                 TextColumn::make('proprietaires')
@@ -31,6 +32,8 @@ class InstallationsTable
                     ->copyable()
                     ->formatStateUsing(fn (string $state) => mb_substr($state, 0, 8).'…')
                     ->tooltip(fn ($record) => $record->id)
+                    ->searchable()
+                    ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('etatCourant.type')
                     ->label('Type')
@@ -40,22 +43,34 @@ class InstallationsTable
                         'non_collectif' => 'success',
                         'non_determine' => 'gray',
                         default => 'gray',
-                    }),
+                    })
+                    ->sortable(),
                 TextColumn::make('etatCourant.statut')
                     ->label('Statut')
-                    ->badge(),
+                    ->badge()
+                    ->sortable(),
+                TextColumn::make('code_insee')
+                    ->label('Code INSEE')
+                    ->getStateUsing(fn ($record) => $record->communeActuelle()['code_insee'] ?? '—'),
+                TextColumn::make('commune')
+                    ->label('Commune')
+                    ->getStateUsing(fn ($record) => $record->communeActuelle()['nom'] ?? '—'),
                 TextColumn::make('parcelles_courantes_count')
                     ->label('Parcelles')
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->sortable(),
                 TextColumn::make('batiments_courants_count')
                     ->label('Bâtiments')
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->sortable(),
                 TextColumn::make('compteurs_courants_count')
                     ->label('Compteurs')
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->sortable(),
                 TextColumn::make('proprietaires_courants_count')
                     ->label('Propriétaires')
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->sortable(),
                 TextColumn::make('created_at')
                     ->label('Créée le')
                     ->dateTime('d/m/Y H:i')
@@ -85,6 +100,17 @@ class InstallationsTable
                     ->query(fn ($query, array $data) => $query->when(
                         $data['value'] ?? null,
                         fn ($query, $value) => $query->whereHas('etatCourant', fn ($q) => $q->where('statut', $value))
+                    )),
+                SelectFilter::make('commune_insee')
+                    ->label('Commune')
+                    ->options(fn () => AdresseVersion::query()->distinct()->pluck('nom_commune', 'code_insee')->filter())
+                    ->query(fn ($query, array $data) => $query->when(
+                        $data['value'] ?? null,
+                        fn ($query, $value) => $query->whereHas('parcellesCourantes', function ($q) use ($value) {
+                            $q->whereIn('parcelle_id', function ($sub) use ($value) {
+                                $sub->select('parcelle_id')->from('parcelle_versions')->where('commune_insee', $value);
+                            });
+                        })
                     )),
             ])
             ->recordActions([

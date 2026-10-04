@@ -7,6 +7,7 @@ use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 /**
@@ -46,8 +47,8 @@ class InstallationsRelationManager extends RelationManager
                             : 'Aucun bâtiment lié';
                     })
                     ->weight('bold'),
-                TextColumn::make('installation.etatCourant.type')->label('Type')->badge(),
-                TextColumn::make('installation.etatCourant.statut')->label('Statut')->badge(),
+                TextColumn::make('installation.etatCourant.type')->label('Type')->badge()->sortable(),
+                TextColumn::make('installation.etatCourant.statut')->label('Statut')->badge()->sortable(),
                 TextColumn::make('parcelles')
                     ->label('Parcelle(s)')
                     ->getStateUsing(function ($record) {
@@ -55,7 +56,33 @@ class InstallationsRelationManager extends RelationManager
 
                         return $parcelles && $parcelles->isNotEmpty() ? $parcelles->implode(', ') : '—';
                     }),
-                TextColumn::make('maj_le')->label('Lié depuis le')->dateTime('d/m/Y H:i'),
+                TextColumn::make('maj_le')->label('Lié depuis le')->dateTime('d/m/Y H:i')->sortable(),
+            ])
+            ->filters([
+                SelectFilter::make('type')
+                    ->label('Type')
+                    ->options([
+                        'non_determine' => 'Non déterminé',
+                        'collectif' => 'Collectif',
+                        'non_collectif' => 'Non collectif',
+                    ])
+                    ->query(fn ($query, array $data) => $query->when(
+                        $data['value'] ?? null,
+                        fn ($query, $value) => $query->whereHas('installation.etatCourant', fn ($q) => $q->where('type', $value))
+                    )),
+                SelectFilter::make('statut')
+                    ->label('Statut')
+                    ->options([
+                        'a_statuer' => 'À statuer',
+                        'a_controler' => 'À contrôler',
+                        'actif' => 'Actif',
+                        'inactif' => 'Inactif',
+                        'abandonne' => 'Abandonné',
+                    ])
+                    ->query(fn ($query, array $data) => $query->when(
+                        $data['value'] ?? null,
+                        fn ($query, $value) => $query->whereHas('installation.etatCourant', fn ($q) => $q->where('statut', $value))
+                    )),
             ])
             ->recordActions([
                 Action::make('voir')

@@ -82,4 +82,45 @@ class Installation extends ModeleImmuable
     {
         return $this->hasMany(Rapport::class);
     }
+
+    private array|false|null $communeActuelleCache = null;
+
+    /**
+     * Commune de la première parcelle courante (le cadastre couvre 100% des
+     * parcelles, contrairement à la BAN qui ne couvre qu'une partie des
+     * adresses) : source la plus fiable pour situer une installation.
+     * Mise en cache sur l'instance (appelée deux fois par ligne de tableau :
+     * colonne code INSEE + colonne commune).
+     *
+     * @return array{code_insee: string, nom: ?string}|null
+     */
+    public function communeActuelle(): ?array
+    {
+        if ($this->communeActuelleCache !== null) {
+            return $this->communeActuelleCache ?: null;
+        }
+
+        $parcelleId = $this->relationLoaded('parcellesCourantes')
+            ? $this->parcellesCourantes->first()?->parcelle_id
+            : $this->parcellesCourantes()->value('parcelle_id');
+
+        if (! $parcelleId) {
+            $this->communeActuelleCache = false;
+
+            return null;
+        }
+
+        $codeInsee = ParcelleVersion::where('parcelle_id', $parcelleId)->value('commune_insee');
+
+        if (! $codeInsee) {
+            $this->communeActuelleCache = false;
+
+            return null;
+        }
+
+        return $this->communeActuelleCache = [
+            'code_insee' => $codeInsee,
+            'nom' => AdresseVersion::where('code_insee', $codeInsee)->value('nom_commune'),
+        ];
+    }
 }

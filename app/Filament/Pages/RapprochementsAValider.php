@@ -4,12 +4,9 @@ namespace App\Filament\Pages;
 
 use App\Filament\Resources\Installations\InstallationResource;
 use App\Models\CompteurVersion;
-use App\Models\InstallationCompteurEvenement;
-use App\Models\InstallationProprietaireEvenement;
 use App\Models\ProprietaireVersion;
-use App\Models\RapprochementDecision;
 use App\Models\RapprochementPropose;
-use App\Support\DeterminationTypeSogedo;
+use App\Support\RapprochementValidation;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -19,6 +16,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
 
@@ -54,8 +52,10 @@ class RapprochementsAValider extends Page implements HasTable
                     ->formatStateUsing(fn (string $state) => mb_substr($state, 0, 8).'…')
                     ->url(fn (RapprochementPropose $record) => $record->installation_id
                         ? InstallationResource::getUrl('view', ['record' => $record->installation_id])
-                        : null),
-                TextColumn::make('type_cible')->label('Type')->badge(),
+                        : null)
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('type_cible')->label('Type')->badge()->sortable(),
                 TextColumn::make('cible')
                     ->label('Cible proposée')
                     ->getStateUsing(function (RapprochementPropose $record) {
@@ -77,11 +77,22 @@ class RapprochementsAValider extends Page implements HasTable
 
                         return $record->cible_id;
                     }),
-                TextColumn::make('methode')->label('Méthode'),
+                TextColumn::make('methode')->label('Méthode')->searchable()->sortable(),
                 TextColumn::make('confiance')->label('Confiance')->numeric(2)->sortable(),
                 TextColumn::make('created_at')->label('Proposé le')->dateTime('d/m/Y H:i')->sortable(),
             ])
             ->defaultSort('confiance', 'desc')
+            ->filters([
+                SelectFilter::make('type_cible')
+                    ->label('Type')
+                    ->options([
+                        'proprietaire' => 'Propriétaire',
+                        'compteur' => 'Compteur',
+                    ]),
+                SelectFilter::make('methode')
+                    ->label('Méthode')
+                    ->options(fn () => RapprochementPropose::query()->distinct()->pluck('methode', 'methode')),
+            ])
             ->headerActions([
                 Action::make('tout_valider')
                     ->label('Tout valider')
@@ -96,8 +107,9 @@ class RapprochementsAValider extends Page implements HasTable
 
                         DB::transaction(function () use (&$typesDetermines) {
                             foreach ($this->getFilteredTableQuery()->get() as $record) {
-                                $resultat = $this->validerProposition(
+                                $resultat = RapprochementValidation::valider(
                                     $record,
+                                    auth()->id(),
                                     'Validation manuelle groupée (bouton "Tout valider")'
                                 );
 
@@ -122,7 +134,7 @@ class RapprochementsAValider extends Page implements HasTable
                     ->color('success')
                     ->requiresConfirmation()
                     ->action(function (RapprochementPropose $record) {
-                        $resultat = $this->validerProposition($record);
+                        $resultat = RapprochementValidation::valider($record, auth()->id());
 
                         if ($resultat['resultat'] === 'determine') {
                             Notification::make()
@@ -141,55 +153,9 @@ class RapprochementsAValider extends Page implements HasTable
                         Textarea::make('motif')->label('Motif du rejet')->required(),
                     ])
                     ->action(function (array $data, RapprochementPropose $record) {
-                        RapprochementDecision::create([
-                            'rapprochement_propose_id' => $record->id,
-                            'decision' => 'rejete',
-                            'motif' => $data['motif'],
-                            'decide_par_id' => auth()->id(),
-                        ]);
+                        RapprochementValidation::rejeter($record, $data['motif'], auth()->id());
                     }),
             ])
             ->toolbarActions([]);
-    }
-
-    /** @return array{resultat: string, type: ?string, detail: ?string} */
-    private function validerProposition(RapprochementPropose $record, ?string $motifDecision = null): array
-    {
-        $determination = ['resultat' => 'sans_objet', 'type' => null, 'detail' => null];
-
-        if ($record->type_cible === 'proprietaire' && $record->installation_id) {
-            InstallationProprietaireEvenement::create([
-                'installation_id' => $record->installation_id,
-                'proprietaire_version_id' => $record->cible_id,
-                'action' => 'lier',
-                'source' => 'auto',
-                'confiance' => $record->confiance,
-                'motif' => "Rapprochement via parcelle commune ({$record->methode})",
-                'auteur_id' => auth()->id(),
-            ]);
-        }
-
-        if ($record->type_cible === 'compteur' && $record->installation_id) {
-            InstallationCompteurEvenement::create([
-                'installation_id' => $record->installation_id,
-                'numero_compteur' => $record->cible_id,
-                'action' => 'lier',
-                'source' => 'auto',
-                'confiance' => $record->confiance,
-                'motif' => "Rapprochement via parcelle commune ({$record->methode})",
-                'auteur_id' => auth()->id(),
-            ]);
-
-            $determination = DeterminationTypeSogedo::depuisCompteursLies($record->installation_id);
-        }
-
-        RapprochementDecision::create([
-            'rapprochement_propose_id' => $record->id,
-            'decision' => 'valide',
-            'motif' => $motifDecision,
-            'decide_par_id' => auth()->id(),
-        ]);
-
-        return $determination;
     }
 }
