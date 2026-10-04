@@ -37,6 +37,7 @@ export type InstallationRow = {
     batiment_type: 'maison' | 'annexe' | null;
     type: string | null;
     statut: string | null;
+    statut_occupation: 'proprietaire_occupant' | 'loue' | null;
     commune: string | null;
     code_insee: string | null;
     adresse: string | null;
@@ -83,6 +84,7 @@ export type DashboardFilters = {
 export type DashboardFilterOptions = {
     types: Record<string, string>;
     statuts: Record<string, string>;
+    statuts_occupation: Record<string, string>;
     communes: Record<string, string>;
 };
 
@@ -189,6 +191,27 @@ function BatimentBadge({ value }: { value: InstallationRow['batiment_type'] }) {
     return (
         <Badge variant={value === 'annexe' ? 'outline' : 'secondary'}>
             {value === 'annexe' ? 'Annexe' : 'Maison'}
+        </Badge>
+    );
+}
+
+function OccupationBadge({
+    value,
+    label,
+}: {
+    value: InstallationRow['statut_occupation'];
+    label?: string;
+}) {
+    if (!value) {
+        return <>—</>;
+    }
+
+    return (
+        <Badge
+            variant={value === 'loue' ? 'secondary' : 'outline'}
+            title="Déduit du nom de l'abonné SOGEDO comparé au(x) propriétaire(s) lié(s) — un signal, pas une donnée saisie"
+        >
+            {label ?? value}
         </Badge>
     );
 }
@@ -591,6 +614,9 @@ export function ProprietairesTable({
                                                                 Statut
                                                             </TableHead>
                                                             <TableHead>
+                                                                Occupation
+                                                            </TableHead>
+                                                            <TableHead>
                                                                 Commune
                                                             </TableHead>
                                                             <TableHead>
@@ -670,6 +696,22 @@ export function ProprietairesTable({
                                                                                               .statuts[
                                                                                               installation
                                                                                                   .statut
+                                                                                          ]
+                                                                                        : undefined
+                                                                                }
+                                                                            />
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <OccupationBadge
+                                                                                value={
+                                                                                    installation.statut_occupation
+                                                                                }
+                                                                                label={
+                                                                                    installation.statut_occupation
+                                                                                        ? filterOptions
+                                                                                              .statuts_occupation[
+                                                                                              installation
+                                                                                                  .statut_occupation
                                                                                           ]
                                                                                         : undefined
                                                                                 }

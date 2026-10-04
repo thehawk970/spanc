@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdresseVersion;
+use App\Models\CompteurVersion;
 use App\Models\Installation;
 use App\Models\ParcelleVersion;
+use App\Support\CorrespondanceNom;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -27,6 +29,18 @@ class DashboardController extends Controller
         'actif' => 'Actif',
         'inactif' => 'Inactif',
         'abandonne' => 'Abandonné',
+    ];
+
+    /**
+     * Déduit de la comparaison nom/prénom entre l'abonné SOGEDO d'un
+     * compteur lié et le(s) propriétaire(s) lié(s) — pas une donnée saisie,
+     * un signal : l'abonné qui paie l'eau n'est pas forcément l'occupant
+     * (ex. propriétaire qui règle lui-même l'eau d'un locataire), et une
+     * installation sans compteur ou sans propriétaire reste indéterminée.
+     */
+    private const STATUTS_OCCUPATION = [
+        'proprietaire_occupant' => 'Propriétaire occupant',
+        'loue' => 'Loué (probable)',
     ];
 
     /**
@@ -95,12 +109,13 @@ class DashboardController extends Controller
 
         $adresseMap = $this->adresseMapFor($installationsById->values());
         $parcelleInfo = $this->parcelleInfoFor($installationsById->values());
+        $abonneParCompteur = $this->abonneNomParCompteur($installationsById->values());
 
-        $pageOwners = $pageOwners->map(function ($owner) use ($installationsById, $adresseMap, $parcelleInfo, $communesByInsee) {
+        $pageOwners = $pageOwners->map(function ($owner) use ($installationsById, $adresseMap, $parcelleInfo, $communesByInsee, $abonneParCompteur) {
             $installations = $owner['installation_ids']
                 ->map(fn ($id) => $installationsById->get($id))
                 ->filter()
-                ->map(fn (Installation $i) => $this->present($i, $adresseMap, $parcelleInfo, $communesByInsee))
+                ->map(fn (Installation $i) => $this->present($i, $adresseMap, $parcelleInfo, $communesByInsee, $abonneParCompteur))
                 ->sortBy(['commune', 'adresse'])
                 ->values();
 
@@ -135,6 +150,7 @@ class DashboardController extends Controller
             'filterOptions' => [
                 'types' => self::TYPES,
                 'statuts' => self::STATUTS,
+                'statuts_occupation' => self::STATUTS_OCCUPATION,
                 'communes' => $communesByInsee,
             ],
         ]);
@@ -322,6 +338,27 @@ class DashboardController extends Controller
         return $map;
     }
 
+    /** @return array<string, string> abonne_nom_brut par numero_compteur (derniere version) */
+    private function abonneNomParCompteur(Collection $installations): array
+    {
+        $numeros = $installations
+            ->flatMap(fn (Installation $i) => $i->compteursCourants->pluck('numero_compteur'))
+            ->unique()
+            ->values();
+
+        if ($numeros->isEmpty()) {
+            return [];
+        }
+
+        return CompteurVersion::query()
+            ->whereIn('numero_compteur', $numeros)
+            ->whereIn('id', function ($sub) {
+                $sub->selectRaw('MAX(id)')->from('compteur_versions')->groupBy('numero_compteur');
+            })
+            ->pluck('abonne_nom_brut', 'numero_compteur')
+            ->all();
+    }
+
     private function parcelleInfoFor(Collection $installations): array
     {
         $parcelleIds = $installations
@@ -344,14 +381,17 @@ class DashboardController extends Controller
             ->all();
     }
 
-    private function present(Installation $installation, array $adresseMap, array $parcelleInfo, Collection $communesByInsee): array
+    private function present(Installation $installation, array $adresseMap, array $parcelleInfo, Collection $communesByInsee, array $abonneParCompteur): array
     {
         $parcelleIds = $installation->parcellesCourantes->pluck('parcelle_id');
         $codeInsee = $parcelleIds->isNotEmpty() ? ($parcelleInfo[$parcelleIds->first()]['commune_insee'] ?? null) : null;
 
-        $proprietaires = $installation->proprietairesCourants
-            ->map(fn ($lien) => trim("{$lien->proprietaireVersion?->nom} {$lien->proprietaireVersion?->prenom}"))
-            ->filter()
+        $proprietairesVersions = $installation->proprietairesCourants
+            ->map(fn ($lien) => $lien->proprietaireVersion)
+            ->filter();
+
+        $proprietaires = $proprietairesVersions
+            ->map(fn ($p) => trim("{$p->nom} {$p->prenom}"))
             ->unique();
 
         $batimentType = $installation->batimentsCourants
@@ -359,12 +399,25 @@ class DashboardController extends Controller
             ->filter()
             ->first();
 
+        $abonnes = $installation->compteursCourants
+            ->pluck('numero_compteur')
+            ->map(fn ($n) => $abonneParCompteur[$n] ?? null)
+            ->filter();
+
+        $statutOccupation = null;
+        if ($abonnes->isNotEmpty() && $proprietairesVersions->isNotEmpty()) {
+            $statutOccupation = $abonnes->every(fn ($abonne) => $proprietairesVersions->contains(
+                fn ($p) => CorrespondanceNom::correspond($abonne, $p->nom, $p->prenom ?? '')
+            )) ? 'proprietaire_occupant' : 'loue';
+        }
+
         return [
             'id' => $installation->id,
             'proprietaires' => $proprietaires->implode(', ') ?: null,
             'batiment_type' => $batimentType,
             'type' => $installation->etatCourant?->type,
             'statut' => $installation->etatCourant?->statut,
+            'statut_occupation' => $statutOccupation,
             'commune' => $codeInsee ? ($communesByInsee[$codeInsee] ?? null) : null,
             'code_insee' => $codeInsee,
             'adresse' => $parcelleIds
