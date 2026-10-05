@@ -13,6 +13,7 @@ use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Table;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -75,6 +76,8 @@ class ExportController extends Controller
                 $this->ecrireChunk($installations, $feuilles, $lignes);
             });
 
+        $this->convertirEnTableauxExcel($feuilles, $lignes);
+
         $writer = new Xlsx($spreadsheet);
         $nomFichier = 'installations_recapitulatif_'.now()->format('Y-m-d').'.xlsx';
 
@@ -132,6 +135,34 @@ class ExportController extends Controller
         }
 
         return ['feuilles' => $feuilles, 'lignes' => $lignes];
+    }
+
+    /**
+     * Convertit la plage de données de chaque feuille en vrai tableau Excel
+     * (Format as Table) : flèches de tri/filtre sur chaque colonne, lignes
+     * alternées, directement utilisable dans Excel sans manipulation
+     * supplémentaire. Fait en dernier, une fois le nombre de lignes connu
+     * (écrites au fil du chunk, pas à l'avance).
+     *
+     * @param  array<string, Worksheet>  $feuilles
+     * @param  array<string, int>  $lignes
+     */
+    private function convertirEnTableauxExcel(array $feuilles, array $lignes): void
+    {
+        $derniereCol = Coordinate::stringFromColumnIndex(count(self::ENTETES_BASE) + count(self::ENTETES_DETAIL));
+
+        foreach ($feuilles as $nomCommune => $feuille) {
+            $derniereLigne = $lignes[$nomCommune] - 1;
+
+            if ($derniereLigne < 2) {
+                continue;
+            }
+
+            $nomTable = 'Tbl_'.preg_replace('/[^A-Za-z0-9_]/', '_', $nomCommune);
+            $table = new Table("A1:{$derniereCol}{$derniereLigne}", $nomTable);
+            $table->getStyle()->setShowRowStripes(true);
+            $feuille->addTable($table);
+        }
     }
 
     /**
