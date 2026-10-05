@@ -52,9 +52,6 @@ yarn-error.log
 # tant que le traitement RGPD n'est pas tranché.
 /data/ban/
 /data/sogedo/
-/data/diagnostics/
 /data/cadastre/*.csv
-data/diagnostic-perigeo/ctrl_be_48mag6t5mo7k5jjgqihis9cb33.csv
-.gitignore
-data/diagnostic-perigeo/dispositif_spanc_48mag6t5mo7k5jjgqihis9cb33.csv
-data/diagnostic-perigeo/ctrl_dpv_48mag6t5mo7k5jjgqihis9cb33.csv
+/data/diagnostic-perigeo/
+/data/diagnostic-pya/
