@@ -38,6 +38,8 @@ export type InstallationRow = {
     type: string | null;
     statut: string | null;
     statut_occupation: 'proprietaire_occupant' | 'loue' | null;
+    dernier_rapport_date: string | null;
+    derniere_conclusion: 'conforme' | 'non_conforme' | 'avec_reserves' | 'autre' | null;
     commune: string | null;
     code_insee: string | null;
     adresse: string | null;
@@ -85,6 +87,7 @@ export type DashboardFilterOptions = {
     types: Record<string, string>;
     statuts: Record<string, string>;
     statuts_occupation: Record<string, string>;
+    conclusions: Record<string, string>;
     communes: Record<string, string>;
 };
 
@@ -211,6 +214,34 @@ function OccupationBadge({
             variant={value === 'loue' ? 'secondary' : 'outline'}
             title="Déduit du nom de l'abonné SOGEDO comparé au(x) propriétaire(s) lié(s) — un signal, pas une donnée saisie"
         >
+            {label ?? value}
+        </Badge>
+    );
+}
+
+const CONCLUSION_VARIANT: Record<
+    string,
+    'default' | 'secondary' | 'outline' | 'destructive'
+> = {
+    conforme: 'default',
+    non_conforme: 'destructive',
+    avec_reserves: 'secondary',
+    autre: 'outline',
+};
+
+function ConclusionBadge({
+    value,
+    label,
+}: {
+    value: InstallationRow['derniere_conclusion'];
+    label?: string;
+}) {
+    if (!value) {
+        return <>—</>;
+    }
+
+    return (
+        <Badge variant={CONCLUSION_VARIANT[value] ?? 'outline'}>
             {label ?? value}
         </Badge>
     );
@@ -617,6 +648,13 @@ export function ProprietairesTable({
                                                                 Occupation
                                                             </TableHead>
                                                             <TableHead>
+                                                                Dernier
+                                                                rapport
+                                                            </TableHead>
+                                                            <TableHead>
+                                                                Conclusion
+                                                            </TableHead>
+                                                            <TableHead>
                                                                 Commune
                                                             </TableHead>
                                                             <TableHead>
@@ -712,6 +750,26 @@ export function ProprietairesTable({
                                                                                               .statuts_occupation[
                                                                                               installation
                                                                                                   .statut_occupation
+                                                                                          ]
+                                                                                        : undefined
+                                                                                }
+                                                                            />
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            {installation.dernier_rapport_date ??
+                                                                                '—'}
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <ConclusionBadge
+                                                                                value={
+                                                                                    installation.derniere_conclusion
+                                                                                }
+                                                                                label={
+                                                                                    installation.derniere_conclusion
+                                                                                        ? filterOptions
+                                                                                              .conclusions[
+                                                                                              installation
+                                                                                                  .derniere_conclusion
                                                                                           ]
                                                                                         : undefined
                                                                                 }

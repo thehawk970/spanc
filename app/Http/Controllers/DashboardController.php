@@ -43,6 +43,14 @@ class DashboardController extends Controller
         'loue' => 'Loué (probable)',
     ];
 
+    /** Conclusion du rapport le plus récent (installation_rapport_courant, voir RapportObserver). */
+    private const CONCLUSIONS = [
+        'conforme' => 'Conforme',
+        'non_conforme' => 'Non conforme',
+        'avec_reserves' => 'Avec réserves',
+        'autre' => 'Autre / non renseigné',
+    ];
+
     /**
      * Codes bruts cadastre.data.gouv.fr (champ `type` des bâtiments) : une
      * installation est créée par bâtiment rapproché, donc maison et annexe
@@ -98,6 +106,7 @@ class DashboardController extends Controller
             ->whereIn('id', $installationIds)
             ->with([
                 'etatCourant',
+                'rapportCourant',
                 'parcellesCourantes',
                 'compteursCourants',
                 'proprietairesCourants.proprietaireVersion',
@@ -151,6 +160,7 @@ class DashboardController extends Controller
                 'types' => self::TYPES,
                 'statuts' => self::STATUTS,
                 'statuts_occupation' => self::STATUTS_OCCUPATION,
+                'conclusions' => self::CONCLUSIONS,
                 'communes' => $communesByInsee,
             ],
         ]);
@@ -411,6 +421,11 @@ class DashboardController extends Controller
             )) ? 'proprietaire_occupant' : 'loue';
         }
 
+        $rapportCourant = $installation->rapportCourant;
+        $derniereConclusion = $rapportCourant
+            ? (in_array($rapportCourant->conclusion, ['conforme', 'non_conforme', 'avec_reserves'], true) ? $rapportCourant->conclusion : 'autre')
+            : null;
+
         return [
             'id' => $installation->id,
             'proprietaires' => $proprietaires->implode(', ') ?: null,
@@ -418,6 +433,8 @@ class DashboardController extends Controller
             'type' => $installation->etatCourant?->type,
             'statut' => $installation->etatCourant?->statut,
             'statut_occupation' => $statutOccupation,
+            'dernier_rapport_date' => $rapportCourant?->date_controle?->format('d/m/Y'),
+            'derniere_conclusion' => $derniereConclusion,
             'commune' => $codeInsee ? ($communesByInsee[$codeInsee] ?? null) : null,
             'code_insee' => $codeInsee,
             'adresse' => $parcelleIds
