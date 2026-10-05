@@ -72,6 +72,32 @@ class InstallationInfolist
                                     ->implode(' | ');
                             })
                             ->columnSpanFull(),
+                        TextEntry::make('dernier_rapport_date')
+                            ->label('Dernier rapport')
+                            ->getStateUsing(fn (Installation $record) => $record->rapportCourant?->date_controle?->format('d/m/Y'))
+                            ->placeholder('Aucun rapport'),
+                        TextEntry::make('dernier_rapport_conclusion')
+                            ->label('Dernière conclusion')
+                            ->getStateUsing(function (Installation $record) {
+                                if (! $record->rapportCourant) {
+                                    return null;
+                                }
+
+                                return match ($record->rapportCourant->conclusion) {
+                                    'conforme' => 'Conforme',
+                                    'non_conforme' => 'Non conforme',
+                                    'avec_reserves' => 'Avec réserves',
+                                    default => 'Autre / non renseigné',
+                                };
+                            })
+                            ->badge()
+                            ->color(fn (?string $state) => match ($state) {
+                                'Conforme' => 'success',
+                                'Non conforme' => 'danger',
+                                'Avec réserves' => 'warning',
+                                default => 'gray',
+                            })
+                            ->placeholder('Aucun rapport'),
                         TextEntry::make('etatCourant.metadata')
                             ->label('Métadonnées')
                             ->formatStateUsing(fn (?array $state) => $state ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '—')

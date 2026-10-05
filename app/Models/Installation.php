@@ -83,6 +83,11 @@ class Installation extends ModeleImmuable
         return $this->hasMany(Rapport::class);
     }
 
+    public function rapportCourant(): HasOne
+    {
+        return $this->hasOne(InstallationRapportCourant::class);
+    }
+
     private array|false|null $communeActuelleCache = null;
 
     /**

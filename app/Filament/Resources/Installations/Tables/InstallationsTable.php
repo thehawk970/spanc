@@ -14,7 +14,7 @@ class InstallationsTable
     {
         return $table
             ->modifyQueryUsing(fn ($query) => $query
-                ->with(['etatCourant', 'parcellesCourantes', 'proprietairesCourants.proprietaireVersion'])
+                ->with(['etatCourant', 'rapportCourant', 'parcellesCourantes', 'proprietairesCourants.proprietaireVersion'])
                 ->withCount(['parcellesCourantes', 'batimentsCourants', 'compteursCourants', 'proprietairesCourants']))
             ->columns([
                 TextColumn::make('proprietaires')
@@ -49,6 +49,33 @@ class InstallationsTable
                     ->label('Statut')
                     ->badge()
                     ->sortable(),
+                TextColumn::make('rapportCourant.date_controle')
+                    ->label('Dernier rapport')
+                    ->date('d/m/Y')
+                    ->placeholder('—')
+                    ->sortable(),
+                TextColumn::make('derniere_conclusion')
+                    ->label('Dernière conclusion')
+                    ->getStateUsing(function ($record) {
+                        if (! $record->rapportCourant) {
+                            return null;
+                        }
+
+                        return match ($record->rapportCourant->conclusion) {
+                            'conforme' => 'Conforme',
+                            'non_conforme' => 'Non conforme',
+                            'avec_reserves' => 'Avec réserves',
+                            default => 'Autre / non renseigné',
+                        };
+                    })
+                    ->badge()
+                    ->color(fn (?string $state) => match ($state) {
+                        'Conforme' => 'success',
+                        'Non conforme' => 'danger',
+                        'Avec réserves' => 'warning',
+                        default => 'gray',
+                    })
+                    ->placeholder('—'),
                 TextColumn::make('code_insee')
                     ->label('Code INSEE')
                     ->getStateUsing(fn ($record) => $record->communeActuelle()['code_insee'] ?? '—'),
@@ -100,6 +127,17 @@ class InstallationsTable
                     ->query(fn ($query, array $data) => $query->when(
                         $data['value'] ?? null,
                         fn ($query, $value) => $query->whereHas('etatCourant', fn ($q) => $q->where('statut', $value))
+                    )),
+                SelectFilter::make('derniere_conclusion')
+                    ->label('Dernière conclusion')
+                    ->options([
+                        'conforme' => 'Conforme',
+                        'non_conforme' => 'Non conforme',
+                        'avec_reserves' => 'Avec réserves',
+                    ])
+                    ->query(fn ($query, array $data) => $query->when(
+                        $data['value'] ?? null,
+                        fn ($query, $value) => $query->whereHas('rapportCourant', fn ($q) => $q->where('conclusion', $value))
                     )),
                 SelectFilter::make('commune_insee')
                     ->label('Commune')

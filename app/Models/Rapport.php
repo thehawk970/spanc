@@ -2,10 +2,16 @@
 
 namespace App\Models;
 
+use App\Observers\RapportObserver;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Rapport extends ModeleImmuable
 {
+    protected static function booted(): void
+    {
+        static::observe(RapportObserver::class);
+    }
+
     protected $fillable = [
         'installation_id', 'type_controle', 'date_controle', 'conclusion',
         'document_path', 'commentaire', 'corrige_rapport_id', 'auteur_id',
