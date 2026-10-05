@@ -1,9 +1,40 @@
 import { Head } from '@inertiajs/react';
 import { Download } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/routes';
 
 export default function Export() {
+    const [telechargement, setTelechargement] = useState(false);
+
+    async function telecharger() {
+        setTelechargement(true);
+
+        try {
+            const reponse = await fetch('/export/installations.xlsx');
+
+            if (!reponse.ok) {
+                throw new Error(`HTTP ${reponse.status}`);
+            }
+
+            const blob = await reponse.blob();
+            const url = URL.createObjectURL(blob);
+            const lien = document.createElement('a');
+            lien.href = url;
+            lien.download = `installations_recapitulatif_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            document.body.appendChild(lien);
+            lien.click();
+            lien.remove();
+            URL.revokeObjectURL(url);
+        } catch {
+            toast.error("Échec du téléchargement de l'export, réessayez.");
+        } finally {
+            setTelechargement(false);
+        }
+    }
+
     return (
         <>
             <Head title="Export" />
@@ -22,11 +53,14 @@ export default function Export() {
                         </p>
                     </div>
 
-                    <Button asChild>
-                        <a href="/export/installations.xlsx" download>
-                            <Download />
-                            Télécharger le fichier Excel
-                        </a>
+                    <Button
+                        onClick={telecharger}
+                        disabled={telechargement}
+                    >
+                        {telechargement ? <Spinner /> : <Download />}
+                        {telechargement
+                            ? 'Génération en cours…'
+                            : 'Télécharger le fichier Excel'}
                     </Button>
                 </div>
             </div>
