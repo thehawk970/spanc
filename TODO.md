@@ -4,3 +4,4 @@
 - Faire une commande pour scrap : assainissement-non-collectif.pro/fiche/
 - Workflow pour éviter les commandes à la chaine
 - Page pour upload des fichiers
+- commande pour compacter les 
