@@ -2,13 +2,16 @@
 
 namespace App\Filament\Resources\FicheSpancPyaVersions\Tables;
 
+use App\Filament\Resources\Installations\InstallationResource;
 use App\Models\FicheSpancPyaVersion;
+use App\Models\InstallationParcelleCourante;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 
 class FicheSpancPyaVersionsTable
 {
@@ -27,6 +30,34 @@ class FicheSpancPyaVersionsTable
                     ->label('Parcelles résolues')
                     ->getStateUsing(fn (FicheSpancPyaVersion $record) => $record->parcelle_ids ? implode(', ', $record->parcelle_ids) : '—')
                     ->wrap(),
+                TextColumn::make('installation')
+                    ->label('Installation')
+                    ->getStateUsing(function (FicheSpancPyaVersion $record) {
+                        $ids = self::installationIds($record);
+
+                        return match (true) {
+                            $ids->isEmpty() => 'Aucune',
+                            $ids->count() === 1 => mb_substr($ids->first(), 0, 8).'…',
+                            default => "{$ids->count()} installations",
+                        };
+                    })
+                    ->url(function (FicheSpancPyaVersion $record) {
+                        $premiere = self::installationIds($record)->first();
+
+                        return $premiere ? InstallationResource::getUrl('view', ['record' => $premiere]) : null;
+                    })
+                    ->openUrlInNewTab(),
+                TextColumn::make('proprietaire_brut')
+                    ->label('Propriétaire (brut, source)')
+                    ->getStateUsing(function (FicheSpancPyaVersion $record) {
+                        $brut = $record->proprietes_brutes ?? [];
+                        $nom = trim(($brut['Titre du propriétaire'] ?? '').' '.($brut['Nom du propriétaire'] ?? '').' '.($brut['Prénom du propriétaire'] ?? ''));
+
+                        return $nom !== '' ? $nom : null;
+                    })
+                    ->placeholder('—')
+                    ->tooltip('Information brute de la source, non fiable pour le rapprochement (fiches parfois anciennes, propriétaire possiblement change depuis) — lien par parcelle uniquement.')
+                    ->toggleable(),
                 TextColumn::make('nature_dernier_controle')->label('Nature')->placeholder('—')->badge()->sortable(),
                 TextColumn::make('avis')->label('Avis')->placeholder('—')->badge()->sortable(),
                 TextColumn::make('date_controle')->label('Date contrôle')->date('d/m/Y')->placeholder('—')->sortable(),
@@ -52,5 +83,17 @@ class FicheSpancPyaVersionsTable
                 ViewAction::make(),
             ])
             ->toolbarActions([]);
+    }
+
+    /** @return Collection<int, string> */
+    private static function installationIds(FicheSpancPyaVersion $record): Collection
+    {
+        $ids = $record->parcelle_ids ?: [];
+
+        if ($ids === []) {
+            return collect();
+        }
+
+        return InstallationParcelleCourante::whereIn('parcelle_id', $ids)->pluck('installation_id')->unique()->values();
     }
 }
