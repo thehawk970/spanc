@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\FicheSpancPyaVersions\Schemas;
 
+use App\Filament\Resources\Installations\InstallationResource;
+use App\Models\FicheSpancPyaVersion;
+use App\Models\InstallationParcelleCourante;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -31,6 +34,34 @@ class FicheSpancPyaVersionInfolist
                         TextEntry::make('parcelle_ids')
                             ->label('Parcelles résolues')
                             ->getStateUsing(fn ($record) => $record->parcelle_ids ? implode(', ', $record->parcelle_ids) : 'Aucune')
+                            ->columnSpanFull(),
+                    ]),
+                Section::make('Installation(s) liée(s)')
+                    ->components([
+                        TextEntry::make('installations_liees')
+                            ->label('')
+                            ->getStateUsing(function (FicheSpancPyaVersion $record) {
+                                $ids = $record->parcelle_ids ?: [];
+
+                                if ($ids === []) {
+                                    return 'Aucune parcelle résolue.';
+                                }
+
+                                $installationIds = InstallationParcelleCourante::whereIn('parcelle_id', $ids)
+                                    ->pluck('installation_id')
+                                    ->unique();
+
+                                if ($installationIds->isEmpty()) {
+                                    return 'Aucune installation ne porte ces parcelles.';
+                                }
+
+                                return $installationIds->map(function ($id) {
+                                    $url = InstallationResource::getUrl('view', ['record' => $id]);
+
+                                    return '<a href="'.e($url).'" class="underline text-primary-600 dark:text-primary-400" target="_blank">'.e($id).'</a>';
+                                })->implode('<br>');
+                            })
+                            ->html()
                             ->columnSpanFull(),
                     ]),
                 Section::make('Propriétés brutes de la source')
